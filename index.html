@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>ЛР №3-4 Обробка часових рядів</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    padding: 20px;
+}
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 1000px;
+    margin: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+h2 {
+    text-align: center;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+button {
+    padding: 8px 15px;
+    margin: 5px 0;
+    cursor: pointer;
+}
+textarea {
+    width: 100%;
+    height: 350px;
+    margin-top: 10px;
+}
+input[type="number"], input[type="text"] {
+    width: 100%;
+}
+.controls {
+    margin: 10px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Лабораторна робота №3-4<br>Обробка часових рядів</h2>
+
+<label>
+<input type="radio" name="type" value="interval" checked> <!-- Інтервальний ряд за замовчуванням -->
+Інтервальний ряд
+</label>
+
+<label>
+<input type="radio" name="type" value="moment"> <!-- Моментальний ряд -->
+Моментальний ряд
+</label>
+
+<br><br>
+
+<table id="dataTable">
+<tr>
+<th>Дата / Інтервал</th> <!-- Заголовок стовпця дати / інтервалу -->
+<th>Значення (yi)</th> <!-- Заголовок стовпця значень -->
+</tr>
+</table>
+
+<button onclick="addRow()">Додати рядок</button> <!-- Додавання нового рядка -->
+
+<div class="controls">
+Індекс i: <input type="number" id="indexI" min="2" value="2"> <!-- Введення індексу i -->
+Індекс t: <input type="number" id="indexT" min="1" value="1"> <!-- Введення індексу t -->
+</div>
+
+<button onclick="calculate()">Розрахувати</button> <!-- Кнопка розрахунку -->
+
+<h3>Результат:</h3>
+<textarea id="result" readonly></textarea> <!-- Поле для виводу результату -->
+
+</div>
+
+<script>
+
+function addRow() {
+    let table = document.getElementById("dataTable"); /* Отримання таблиці */
+    let row = table.insertRow(); /* Додавання нового рядка */
+    row.insertCell(0).innerHTML = '<input type="text">'; /* Поле для дати/інтервалу */
+    row.insertCell(1).innerHTML = '<input type="number" step="any">'; /* Поле для значення yi */
+}
+
+function parseDate(str){
+    let parts = str.split("."); /* Розбиття дати на день, місяць, рік */
+    if(parts.length === 3){
+        return new Date(parts[2], parts[1]-1, parts[0]); /* Створення об’єкту дати */
+    }
+    return null; /* Повернення null, якщо формат некоректний */
+}
+
+function calculate(){
+
+    let rows = document.querySelectorAll("#dataTable tr"); /* Отримання всіх рядків таблиці */
+    let values = []; /* Масив значень yi */
+    let dates = []; /* Масив дат/інтервалів */
+    let type = document.querySelector('input[name="type"]:checked').value; /* Тип ряду */
+
+    for(let i=1;i<rows.length;i++){
+        let inputs = rows[i].querySelectorAll("input"); /* Отримання полів введення */
+        if(!inputs[1].value) continue; /* Пропуск порожніх рядків */
+
+        values.push(parseFloat(inputs[1].value)); /* Додавання значення yi */
+        dates.push(inputs[0].value); /* Додавання дати */
+    }
+
+    if(values.length < 2){
+        alert("Потрібно мінімум 2 значення!"); /* Перевірка на мінімум значень */
+        return;
+    }
+
+    if(type === "moment"){
+        let combined = values.map((v,i)=>({
+            value:v,
+            date:dates[i],
+            parsed: parseDate(dates[i])
+        })); /* Об’єднання значень з датами */
+
+        combined.sort((a,b)=>a.parsed - b.parsed); /* Сортування за датою */
+
+        values = combined.map(x=>x.value); /* Оновлення масиву значень */
+        dates = combined.map(x=>x.date); /* Оновлення масиву дат */
+    }
+
+    let iIndex = parseInt(document.getElementById("indexI").value) - 1; /* Зчитування i */
+    let tIndex = parseInt(document.getElementById("indexT").value) - 1; /* Зчитування t */
+
+    if(iIndex <= tIndex){
+        alert("i повинно бути більше за t!"); /* Перевірка коректності індексів */
+        return;
+    }
+
+    let n = values.length; /* Кількість рівнів ряду */
+    let result = ""; /* Рядок для результату */
+
+    result += "Кількість рівнів: " + n + "\n\n"; /* Вивід кількості рівнів */
+    // 1 Абсолютний приріст
+    let absGrowth = values[iIndex] - values[tIndex];
+    result += "1. Абсолютний приріст Δy = " + absGrowth.toFixed(4) + "\n";
+
+    // 2 Коефіцієнт зростання
+    let growthCoeff = values[iIndex] / values[tIndex];
+    result += "2. Коефіцієнт зростання K = " + growthCoeff.toFixed(4) + "\n";
+
+    // 3 Коефіцієнт приросту
+    let growthRateCoeff = (values[iIndex] - values[tIndex]) / values[tIndex];
+    result += "3. Коефіцієнт приросту Kпр = " + growthRateCoeff.toFixed(4) + "\n";
+
+    // 4 Темп зростання
+    let growthRate = growthCoeff * 100;
+    result += "4. Темп зростання Tзр = " + growthRate.toFixed(2) + "%\n";
+
+    // 5 Темп приросту
+    let increaseRate = growthRate - 100;
+    result += "5. Темп приросту Tпр = " + increaseRate.toFixed(2) + "%\n";
+
+    // 6 Середня арифметична
+    let sum = values.reduce((a,b)=>a+b,0);
+    let arithmeticMean = sum / n;
+    result += "\n6. Середня арифметична ȳ = " + arithmeticMean.toFixed(4) + "\n";
+
+    // 7 Середня хронологічна (для моментального)
+    if(type === "moment"){
+        let chrono = (values[0]/2 + values[n-1]/2);
+        for(let k=1;k<n-1;k++){
+            chrono += values[k];
+        }
+        chrono = chrono / (n-1);
+        result += "7. Середня хронологічна ȳ = " + chrono.toFixed(4) + "\n";
+    }
+
+    // 8 Середній абсолютний приріст
+    let avgAbs = (values[n-1] - values[0]) / (n-1);
+    result += "8. Середній абсолютний приріст = " + avgAbs.toFixed(4) + "\n";
+
+    // 9 Середній темп зростання
+    let avgGrowthRate = Math.pow(values[n-1]/values[0], 1/(n-1));
+    result += "9. Середній темп зростання = " + (avgGrowthRate*100).toFixed(2) + "%\n";
+
+    // 10 Середній темп приросту
+    let avgIncreaseRate = (avgGrowthRate - 1) * 100;
+    result += "10. Середній темп приросту = " + avgIncreaseRate.toFixed(2) + "%\n";
+
+    document.getElementById("result").value = result;
+}
+
+// стартові 2 рядки
+addRow(); /* Додавання першого рядка за замовчуванням */
+addRow(); /* Додавання другого рядка за замовчуванням */
+
+</script>
+
+</body>
+</html>
